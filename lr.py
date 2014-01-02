@@ -1,3 +1,6 @@
+import copy
+import pprint
+
 def getFollows(sym, grammar):
     follows = []
 
@@ -13,15 +16,70 @@ def getFollows(sym, grammar):
     return follows
 
 
+class lrExpression(object):
+    def __init__(self, expr, la, lrpos):
+        self.expr = expr
+        self.la = la
+        self.lrpos = lrpos
+
+    def getLrStart(self):
+        return self.expr[self.lrpos]
+
+    def getLrStartLa(self):
+        return self.expr[self.lrpos+1:self.lrpos+2]
+
+    def isReduce(self):
+        return self.lrpos == len(self.expr)-1
+
+    def __str__(self):
+        expr = copy.deepcopy(self.expr)
+        expr.insert(self.lrpos, ".")
+        return str(expr) + ", " + str(self.la)
+
+    def __repr__(self):
+        return self.__str__()
+
+class lrState(object):
+    def __init__(self, *args):
+        if len(args) == 1:
+            self.productions = args[0]
+        elif len(args) == 0:
+            self.productions = []
+        else:
+            raise TypeError("__init__() takes 0 or 1 arguments (" + str(len(args)) + " given)")
+        
+        self.transitions = {}
+
+
+def fillState(state, lrpos, states, grammar, follows):
+    newprods = []
+   
+    i = 0 
+    while i < len(state.productions):
+        #print prod[1].getLrStart()
+
+        start = state.productions[i][1].getLrStart()
+
+        if isinstance(start, nonTerminal):
+            for gprod in grammar[start.name]:
+                state.productions.append([start, lrExpression(gprod, state.productions[i][1].getLrStartLa(), lrpos)])
+        
+        i += 1
+
+    pp = pprint.PrettyPrinter(indent = 4)
+    pp.pprint(state.productions)
+        
+
 
 def getParser(grammar):
     
-    follows = {"START": [terminal()]}
+    follows = {}
     for p in grammar:
-        if p != "START":
-            follows[p] = getFollows(nonTerminal(p), grammar)
+        follows[p] = getFollows(nonTerminal(p), grammar)
 
-    print follows
+    states = [ lrState([["START'", lrExpression(grammar["START'"][0], [], 0)]]) ]
+
+    fillState(states[0], 0, states, grammar, follows)
 
 
 class token(object):
@@ -50,6 +108,7 @@ class nonTerminal(token):
     pass
 
 grammar = {
+    "START'": [[nonTerminal("START"), terminal()]],
     "START": [
         [nonTerminal("A"), terminal("a")], 
         [terminal("b"), nonTerminal("A"), terminal("c")],
