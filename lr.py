@@ -115,6 +115,8 @@ def genFunc(stateNum, states):
             func += "            input.insert(0, " + str(prod[0]) + ")\n"
             func += "            # ----- action here\n"
             func += "            return stack[-1]\n"
+
+    func += "        raise ParseException("")\n"
             
 
     return func
@@ -132,6 +134,9 @@ def getParser(grammar):
     code =  "from token import terminal, nonTerminal\n" 
    
     code += "def parse(input):\n"
+
+    code += "    class ParseException(Exception):\n"
+    code += "        pass\n"
     
     code += "    def nextTok(input):\n"
     code += "        if len(input) == 0:\n"
