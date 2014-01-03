@@ -1,5 +1,4 @@
 import copy
-import pprint
 
 def getFollows(sym, grammar):
     follows = []
@@ -15,7 +14,6 @@ def getFollows(sym, grammar):
     
     return follows
 
-
 class lrExpression(object):
     def __init__(self, expr, la, lrpos):
         self.expr = expr
@@ -23,18 +21,20 @@ class lrExpression(object):
         self.lrpos = lrpos
 
     def getLrStart(self):
+        if self.lrpos >= len(self.expr):
+            return 
         return self.expr[self.lrpos]
 
     def getLrStartLa(self):
         return self.expr[self.lrpos+1:self.lrpos+2]
 
     def isReduce(self):
-        return self.lrpos == len(self.expr)-1
+        return self.lrpos == len(self.expr)
 
     def __str__(self):
         expr = copy.deepcopy(self.expr)
         expr.insert(self.lrpos, ".")
-        return str(expr) + ", " + str(self.la)
+        return str(expr) + " | " + str(self.la)
 
     def __repr__(self):
         return self.__str__()
@@ -50,26 +50,42 @@ class lrState(object):
         
         self.transitions = {}
 
+    def strProductions(self):
+        s = ""
 
-def fillState(state, lrpos, states, grammar, follows):
-    newprods = []
-   
+        for p in self.productions:
+            s += str(p[0]) + " --> " + str(p[1]) + "\n"
+
+        return s
+
+
+def fillState(stateNum, lrpos, states, grammar, follows):
+    newStates = set()
+    
+    state = states[stateNum]
+    
     i = 0 
     while i < len(state.productions):
-        #print prod[1].getLrStart()
-
         start = state.productions[i][1].getLrStart()
-
-        if isinstance(start, nonTerminal):
-            for gprod in grammar[start.name]:
-                state.productions.append([start, lrExpression(gprod, state.productions[i][1].getLrStartLa(), lrpos)])
-        
+        if(start):
+            if isinstance(start, nonTerminal):
+                for gprod in grammar[start.name]:
+                    state.productions.append([start, lrExpression(gprod, state.productions[i][1].getLrStartLa(), 0)])
+            
+            if not state.productions[i][1].isReduce():
+                if not start in state.transitions:
+                    states.append(lrState())
+                    state.transitions[start] = len(states)-1
+                    newStates.add(state.transitions[start])
+                
+                newprod = copy.deepcopy(state.productions[i])
+                newprod[1].lrpos += 1
+                states[state.transitions[start]].productions.append(newprod)
+                
         i += 1
 
-    pp = pprint.PrettyPrinter(indent = 4)
-    pp.pprint(state.productions)
-        
-
+    for s in newStates:
+        fillState(s, lrpos, states, grammar, follows)
 
 def getParser(grammar):
     
@@ -79,7 +95,9 @@ def getParser(grammar):
 
     states = [ lrState([["START'", lrExpression(grammar["START'"][0], [], 0)]]) ]
 
-    fillState(states[0], 0, states, grammar, follows)
+    fillState(0, 0, states, grammar, follows)
+
+    return states
 
 
 class token(object):
@@ -94,6 +112,9 @@ class token(object):
     def __repr__(self):
         return self.__str__()
 
+    def __hash__(self):
+        return self.__repr__().__hash__()
+
 class terminal(token):
     
     def __init__(self, *args, **kwargs):
@@ -107,17 +128,26 @@ class terminal(token):
 class nonTerminal(token):
     pass
 
-grammar = {
-    "START'": [[nonTerminal("START"), terminal()]],
-    "START": [
-        [nonTerminal("A"), terminal("a")], 
-        [terminal("b"), nonTerminal("A"), terminal("c")],
-        [nonTerminal("B"), terminal("c")],
-        [terminal("b"), nonTerminal("B"), terminal("a")]
-    ],
-    "A": [[terminal("d")]],
-    "B": [[terminal("d")]]
-}
 
-getParser(grammar)
+def main():
+    grammar = {
+        "START'": [[nonTerminal("START"), terminal()]],
+        "START": [
+            [nonTerminal("A"), terminal("a")], 
+            [terminal("b"), nonTerminal("A"), terminal("c")],
+            [nonTerminal("B"), terminal("c")],
+            [terminal("b"), nonTerminal("B"), terminal("a")]
+        ],
+        "A": [[terminal("d")]],
+        "B": [[terminal("d")]]
+    }
+
+    parser = getParser(grammar)
     
+    for i in range(len(parser)):
+        print i
+        print parser[i].transitions
+        print parser[i].strProductions()
+
+if __name__ == "__main__":
+    main()
