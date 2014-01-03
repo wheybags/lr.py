@@ -5,7 +5,7 @@ class token(object):
         if isinstance(other, type(self)):
             return self.name == other.name
     def __str__(self):
-        return type(self).__name__ + "(" + self.name + ")"
+        return type(self).__name__ + ("(\"" + self.name + "\")" if self.name != "" else "()")
     
     def __repr__(self):
         return self.__str__()
