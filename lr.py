@@ -148,18 +148,18 @@ def getParser(grammar):
         code += genFunc(i, states)
 
     code += "    stack = [0]\n"
-    code += "    states = {"
-    for i in range(len(states)):
-        code += str(i) + ": " + str(states[i].transitions) + ", "
+    code += "    states = ["
+    for s in states:
+        code += str(s.transitions) + ", "
 
     code = code[:-2]
-    code += "}\n"
+    code += "]\n"
 
-    code += "    funcs = {"
+    code += "    funcs = ["
     for i in range(len(states)):
-        code += str(i) + ": func" + str(i) + ", "
+        code += "func" + str(i) + ", "
     code = code[:-2]
-    code += "}\n"
+    code += "]\n"
 
     code += "    current = 0\n"
     code += "    while not (stack == [0] and input == [nonTerminal(\"START'\")]):\n"
